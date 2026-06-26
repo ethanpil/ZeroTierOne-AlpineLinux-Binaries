@@ -1,0 +1,114 @@
+name: build-and-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: ZeroTierOne release tag to package (defaults to latest upstream release)
+        required: false
+        type: string
+  push:
+    tags:
+      - '*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Resolve ZeroTierOne version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+
+          if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
+            version="${GITHUB_REF_NAME}"
+          elif [ -n "${INPUT_VERSION:-}" ]; then
+            version="${INPUT_VERSION}"
+          else
+            version="$(gh api repos/zerotier/ZeroTierOne/releases/latest --jq .tag_name)"
+          fi
+
+          gh api "repos/zerotier/ZeroTierOne/releases/tags/${version}" >/dev/null
+          echo "version=${version}" >>"${GITHUB_OUTPUT}"
+
+  build:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86
+          - arch: x86_64
+          - arch: aarch64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Build APK
+        run: |
+          set -euo pipefail
+          mkdir -p "${RUNNER_TEMP}/dist/${{ matrix.arch }}"
+          /bin/bash "${GITHUB_WORKSPACE}/scripts/build-apk.sh" \
+            --version "${{ needs.prepare.outputs.version }}" \
+            --arch "${{ matrix.arch }}" \
+            --out-dir "${RUNNER_TEMP}/dist/${{ matrix.arch }}"
+
+      - name: Upload APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: zerotier-one-${{ matrix.arch }}
+          path: |
+            ${{ runner.temp }}/dist/${{ matrix.arch }}/*.apk
+            ${{ runner.temp }}/dist/${{ matrix.arch }}/*.pub
+
+  release:
+    needs:
+      - prepare
+      - build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/release
+
+      - name: Create ARM64 alias
+        run: |
+          set -euo pipefail
+          apk_path="$(find "${RUNNER_TEMP}/release/zerotier-one-aarch64" -name '*.apk' -print -quit)"
+          cp "${apk_path}" "${apk_path%-aarch64.apk}-arm64.apk"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          mapfile -d '' files < <(find "${RUNNER_TEMP}/release" -type f -print0 | sort -z)
+          architectures="$(find "${RUNNER_TEMP}/release" -type f -name '*.apk' -printf '%f\n' | sed -E 's/.*-([[:alnum:]_]+)\.apk/\1/' | sort -u | sed 's/^/- /')"
+          notes="Automated Alpine Linux APKs for ZeroTierOne ${VERSION}
+
+          Architectures:
+          ${architectures}
+          "
+
+          if gh release view "${VERSION}" >/dev/null 2>&1; then
+            gh release upload "${VERSION}" "${files[@]}" --clobber
+          else
+            gh release create "${VERSION}" \
+              "${files[@]}" \
+              --title "ZeroTierOne ${VERSION}" \
+              --notes "${notes}"
+          fi
