@@ -80,7 +80,7 @@ docker run --rm \
   -v "${work_dir}:/work" \
   "alpine:${alpine_version}" \
   /bin/sh -euxc '
-    apk add --no-cache alpine-sdk bash build-base curl linux-headers openssl-dev tar xz
+    apk add --no-cache alpine-sdk bash build-base cargo curl linux-headers openssl-dev rust tar xz
     addgroup -S abuild >/dev/null 2>&1 || true
     adduser -D -h /work/home -G abuild builder
     chown -R builder:abuild /work
