@@ -65,7 +65,7 @@ case "${arch}" in
 esac
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-work_dir="$(mktemp -d /tmp/zerotier-apk-build.XXXXXX)"
+work_dir="$(mktemp -d)"
 trap 'rm -rf "${work_dir}"' EXIT
 
 mkdir -p "${out_dir}" "${work_dir}/packages"

@@ -55,7 +55,10 @@ esac
 mkdir -p "${work_dir}"
 
 source_url="https://github.com/zerotier/ZeroTierOne/archive/refs/tags/${version}.tar.gz"
-source_sha512="$(curl -fsSL "${source_url}" | sha512sum | awk '{print $1}')"
+if ! source_sha512="$(curl -fsSL "${source_url}" | sha512sum | awk '{print $1}')"; then
+  echo "Failed to download ${source_url}" >&2
+  exit 1
+fi
 
 cat >"${work_dir}/APKBUILD" <<EOF
 pkgname=zerotier-one

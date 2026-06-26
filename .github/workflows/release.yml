@@ -96,16 +96,13 @@ jobs:
         run: |
           set -euo pipefail
 
+          mapfile -d '' files < <(find "${RUNNER_TEMP}/release" -type f -print0 | sort -z)
+          architectures="$(find "${RUNNER_TEMP}/release" -type f -name '*.apk' -printf '%f\n' | sed -E 's/.*-([[:alnum:]_]+)\.apk/\1/' | sort -u | sed 's/^/- /')"
           notes="Automated Alpine Linux APKs for ZeroTierOne ${VERSION}
 
           Architectures:
-          - x86
-          - x86_64
-          - aarch64
-          - arm64 (alias of Alpine aarch64)
+          ${architectures}
           "
-
-          mapfile -d '' files < <(find "${RUNNER_TEMP}/release" -type f -print0 | sort -z)
 
           if gh release view "${VERSION}" >/dev/null 2>&1; then
             gh release upload "${VERSION}" "${files[@]}" --clobber
