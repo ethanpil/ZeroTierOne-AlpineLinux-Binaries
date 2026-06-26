@@ -84,7 +84,7 @@ docker run --rm \
     addgroup -S abuild >/dev/null 2>&1 || true
     adduser -D -h /work/home -G abuild builder
     chown -R builder:abuild /work
-    su builder -c "abuild-keygen -n"
+    su builder -c "abuild-keygen -na"
     su builder -c "cd /work && abuild -F -P /work/packages"
   '
 
