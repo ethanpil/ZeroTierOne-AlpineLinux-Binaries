@@ -57,10 +57,12 @@ You can build one architecture locally with Docker:
 ```
 
 Supported local `--arch` values are `x86`, `x86_64`, and `aarch64`.
+The build script defaults to Alpine 3.23 so the bundled Rust toolchain is new enough for current ZeroTierOne dependencies.
 
 To install a locally built package, either copy the matching `zerotier-one-<arch>.rsa.pub` file into `/etc/apk/keys/` first or install the APK with `apk add --allow-untrusted`.
 
 ## Notes
 
 - The workflow follows the upstream ZeroTierOne source build flow (`make` plus `make selftest`) and wraps it in Alpine APK packaging.
+- Alpine 3.23 or newer is required because current ZeroTierOne Rust dependencies need at least Rust 1.88.
 - Alpine's 64-bit ARM architecture name is `aarch64`; the workflow also uploads an `arm64`-named release asset for convenience.
