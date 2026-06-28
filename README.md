@@ -1,6 +1,6 @@
 # ZeroTierOne Alpine Linux APKs
 
-This repository builds installable Alpine Linux APK packages for upstream [zerotier/ZeroTierOne](https://github.com/zerotier/ZeroTierOne) releases and publishes them as GitHub release assets in this repository.
+This repository builds **static** Alpine Linux APK packages for upstream [zerotier/ZeroTierOne](https://github.com/zerotier/ZeroTierOne) releases and publishes them as GitHub release assets in this repository.
 
 ## What gets built
 
@@ -18,6 +18,80 @@ Each package contains:
 - `/usr/bin/zerotier-idtool`
 
 Release assets are published with architecture-specific filenames such as `zerotier-one-1.16.2-r0-x86_64.apk`.
+
+## Static build confirmation
+
+These packages are produced from source using the upstream `make` flow and this repository is intended to publish **static builds** for Alpine Linux.
+
+> Verify a binary is static after installation:
+>
+> ```bash
+> ldd /usr/sbin/zerotier-one
+> ```
+>
+> A static binary reports `not a dynamic executable`.
+
+## Install on a running Alpine system
+
+1. Download the correct release assets for your architecture from this repository's Releases page:
+   - `zerotier-one-<version>-r0-<arch>.apk`
+   - `zerotier-one-<arch>.rsa.pub`
+2. Add the package signing key:
+
+```bash
+sudo install -m 0644 zerotier-one-<arch>.rsa.pub /etc/apk/keys/
+```
+
+3. Install the package:
+
+```bash
+sudo apk add ./zerotier-one-<version>-r0-<arch>.apk
+```
+
+If you do not want to install the key, you can install with:
+
+```bash
+sudo apk add --allow-untrusted ./zerotier-one-<version>-r0-<arch>.apk
+```
+
+## Runtime configuration and state paths
+
+ZeroTier stores runtime state and identity material under:
+
+- `/var/lib/zerotier-one`
+
+Important files/directories include:
+
+- `/var/lib/zerotier-one/identity.public`
+- `/var/lib/zerotier-one/identity.secret`
+- `/var/lib/zerotier-one/networks.d/`
+
+## OpenRC service startup (Alpine)
+
+Start the service now:
+
+```bash
+sudo rc-service zerotier-one start
+```
+
+Enable it at boot:
+
+```bash
+sudo rc-update add zerotier-one default
+```
+
+Check status:
+
+```bash
+sudo rc-service zerotier-one status
+```
+
+Then authorize or join networks with `zerotier-cli`, for example:
+
+```bash
+sudo zerotier-cli info
+sudo zerotier-cli join <network-id>
+```
 
 ## Automation
 
