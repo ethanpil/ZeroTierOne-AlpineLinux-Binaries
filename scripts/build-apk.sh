@@ -85,6 +85,12 @@ docker run --rm \
     adduser -D -h /work/home -G abuild builder
     chown -R builder:abuild /work
     su builder -c "abuild-keygen -na"
+    set -- /work/home/.abuild/*.pub
+    if [ "$#" -ne 1 ] || [ ! -f "$1" ]; then
+      echo "Expected exactly one abuild public key in /work/home/.abuild" >&2
+      exit 1
+    fi
+    cp "$1" /etc/apk/keys/
     su builder -c "cd /work && abuild -F -P /work/packages"
   '
 
