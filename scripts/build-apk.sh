@@ -11,7 +11,7 @@ EOF
 version=
 arch=
 out_dir=
-alpine_version=3.22
+alpine_version=3.23
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
