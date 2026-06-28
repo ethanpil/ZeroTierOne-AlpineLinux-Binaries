@@ -85,7 +85,9 @@ docker run --rm \
     adduser -D -h /work/home -G abuild builder
     chown -R builder:abuild /work
     su builder -c "abuild-keygen -na"
-    cp /work/home/.abuild/*.pub /etc/apk/keys/
+    set -- /work/home/.abuild/*.pub
+    [ "$#" -eq 1 ] && [ -f "$1" ]
+    cp "$1" /etc/apk/keys/
     su builder -c "cd /work && abuild -F -P /work/packages"
   '
 
