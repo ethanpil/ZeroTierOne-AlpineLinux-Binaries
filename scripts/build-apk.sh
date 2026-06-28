@@ -75,9 +75,18 @@ mkdir -p "${out_dir}" "${work_dir}/packages"
   --arch "${arch}" \
   --work-dir "${work_dir}"
 
+host_uid="$(id -u)"
+host_gid="$(id -g)"
+if ! [[ "${host_uid}" =~ ^[0-9]+$ ]] || ! [[ "${host_gid}" =~ ^[0-9]+$ ]]; then
+  echo "Unexpected non-numeric UID (${host_uid}) or GID (${host_gid})" >&2
+  exit 1
+fi
+
 docker run --rm \
   --platform "${docker_platform}" \
   -v "${work_dir}:/work" \
+  -e "HOST_UID=${host_uid}" \
+  -e "HOST_GID=${host_gid}" \
   "alpine:${alpine_version}" \
   /bin/sh -euxc '
     apk add --no-cache alpine-sdk bash build-base cargo curl linux-headers openssl-dev rust tar xz
@@ -92,6 +101,7 @@ docker run --rm \
     fi
     cp "$1" /etc/apk/keys/
     su builder -c "cd /work && abuild -F -P /work/packages"
+    chown -R "${HOST_UID}:${HOST_GID}" /work
   '
 
 find "${work_dir}/packages" -type f -name '*.apk' -print0 |
